@@ -36,7 +36,7 @@ namespace MigrationTools.Host.Services
                 try
                 {
                     var request = new HttpRequestMessage(HttpMethod.Head, "https://dns.google");
-                    var response = _httpClient.Send(request);
+                    var response = _httpClient.SendAsync(request).GetAwaiter().GetResult();
                     responce = ((int)response.StatusCode).ToString();
                     isOnline = response.IsSuccessStatusCode;
                     mainTimer.Stop();
