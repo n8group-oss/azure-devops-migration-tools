@@ -24,6 +24,7 @@ namespace MigrationTools.Tests
         {
             var configuration = new ConfigurationBuilder().Build();
             var services = new ServiceCollection();
+            services.AddSingleton<IConfiguration>(configuration);
             services.AddMigrationToolServicesForUnitTests();
 
             services.AddMigrationToolServices(configuration);
