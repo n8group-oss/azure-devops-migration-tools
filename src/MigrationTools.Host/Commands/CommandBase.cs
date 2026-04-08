@@ -137,8 +137,7 @@ namespace MigrationTools.Host.Commands
 
                 if (!_detectVersionService.IsPackageManagerInstalled)
                 {
-                    Log.Warning("Windows Client: The Windows Package Manager is not installed, we use it to determine if you have the latest version, and to make sure that this application is up to date. You can download and install it from https://aka.ms/getwinget. After which you can call `winget install {PackageId}` from the Windows Terminal to get a manged version of this program.", _detectVersionService.PackageId);
-                    Log.Warning("Windows Server: If you are running on Windows Server you can use the experimental version of Winget, or you can still use Chocolatey to manage the install. Install chocolatey from https://chocolatey.org/install and then use `choco install vsts-sync-migrator` to install, and `choco upgrade vsts-sync-migrator` to upgrade to newer versions.", _detectVersionService.PackageId);
+                    Log.Debug("No package manager detected. Skipping version management checks.");
                 }
                 else
                 {

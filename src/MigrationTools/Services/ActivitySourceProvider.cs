@@ -22,7 +22,15 @@ namespace MigrationTools.Services
     public class ActivitySourceProvider
     {
         public static readonly string ActivitySourceName = "MigrationTools";
-        private static string OpenTelemetryConnectionString = "InstrumentationKey=823d0de3-69c9-42ee-b902-de7675f681bc;IngestionEndpoint=https://westeurope-5.in.applicationinsights.azure.com/;LiveEndpoint=https://westeurope.livediagnostics.monitor.azure.com/;ApplicationId=4dd8f684-2f91-48ac-974f-dc898b686786";
+        private static string OpenTelemetryConnectionString = "";
+
+        public static void SetConnectionString(string connectionString)
+        {
+            if (!string.IsNullOrWhiteSpace(connectionString))
+            {
+                OpenTelemetryConnectionString = connectionString;
+            }
+        }
 
 
             public static ActivitySource ActivitySource { get; private set; }
@@ -137,13 +145,17 @@ namespace MigrationTools.Services
 
                 services.AddOptions();
 
+                // Read connection string from configuration, fall back to empty
+                var connectionString = context.Configuration.GetValue<string>("Telemetry:ApplicationInsights:ConnectionString") ?? "";
+                ActivitySourceProvider.SetConnectionString(connectionString);
+
                 services.AddSingleton<WorkItemMetrics>();
                 services.AddSingleton<ProcessorMetrics>();
 
                 // Configure OpenTelemetry
                 Assembly entryAssembly = Assembly.GetEntryAssembly();
                 string entryAssemblyName = entryAssembly?.GetName().Name;
-                services.AddOpenTelemetry()
+                var otelBuilder = services.AddOpenTelemetry()
                     //.WithTracing(builder =>
                     //{
                     //    builder
@@ -160,20 +172,24 @@ namespace MigrationTools.Services
 
                     //        });
                     //})
-                    .WithMetrics(builder =>
+                    .WithMetrics(metricsBuilder =>
                     {
-                        builder
+                        metricsBuilder
                              .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(entryAssemblyName, serviceVersion: versionString))
                              .AddMeter("MigrationTools.TestPlans", WorkItemMetrics.meterName, ProcessorMetrics.meterName)
                              .AddHttpClientInstrumentation()
                              .AddRuntimeInstrumentation()
-                             .AddProcessInstrumentation()
+                             .AddProcessInstrumentation();
                              //.AddConsoleExporter() // Export metrics to console
-                             .AddAzureMonitorMetricExporter(options =>
-                             {
-                      
-                                 options.ConnectionString = ActivitySourceProvider.GetConnectionString();
-                             });
+
+                        // Only add Azure Monitor exporter if connection string is configured
+                        if (!string.IsNullOrWhiteSpace(ActivitySourceProvider.GetConnectionString()))
+                        {
+                            metricsBuilder.AddAzureMonitorMetricExporter(options =>
+                            {
+                                options.ConnectionString = ActivitySourceProvider.GetConnectionString();
+                            });
+                        }
                     });
                 //services.AddLogging(loggingBuilder =>
                 //{

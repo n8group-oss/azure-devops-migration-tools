@@ -118,7 +118,7 @@ namespace MigrationTools.Processors.Infrastructure
                     switch (ex.ErrorSource)
                     {
                         case MigrationToolsException.ExceptionSource.Configuration:
-                            Log.LogCritical(ex, "An error occurred in the Migration Tools causing it to stop! This is likley due to a configuration issue and is not being logged remotely. You can always ask on https://github.com/nkdAgility/azure-devops-migration-tools/discussions ");
+                            Log.LogCritical(ex, "An error occurred in the Migration Tools causing it to stop! This is likely due to a configuration issue and is not being logged remotely. You can always ask on https://github.com/n8group-oss/azure-devops-migration-tools/discussions ");
                             break;
                         case MigrationToolsException.ExceptionSource.Internal:
                         default:

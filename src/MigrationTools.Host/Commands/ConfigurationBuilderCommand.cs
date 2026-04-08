@@ -118,7 +118,7 @@ namespace MigrationTools.Host.Commands
         private void DisplayCurrentOptions(OptionsConfigurationBuilder optionsBuilder)
         {
             Console.Clear();
-            AnsiConsole.WriteLine("Azure DevOps Migration Tools");
+            AnsiConsole.WriteLine("Migration Tools");
             AnsiConsole.Write(
                new FigletText("Config Builder")
                  .LeftJustified()

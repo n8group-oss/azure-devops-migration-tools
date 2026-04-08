@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Security.Principal;
 using System.Text.RegularExpressions;
 using Elmah.Io.Client;
+using Microsoft.Extensions.Configuration;
 using MigrationTools.Services;
 
 namespace MigrationTools
@@ -14,17 +15,26 @@ namespace MigrationTools
     {
         private static IElmahioAPI elmahIoClient;
         private static IMigrationToolVersion _MigrationToolVersion;
+        private readonly string _elmahLogId;
+        private readonly bool _elmahEnabled;
 
-        public TelemetryClientAdapter(IMigrationToolVersion migrationToolVersion)
+        public TelemetryClientAdapter(IMigrationToolVersion migrationToolVersion, IConfiguration configuration)
         {
             _MigrationToolVersion = migrationToolVersion;
-            elmahIoClient = ElmahioAPI.Create("7589821e832a4ae1a1170f8201def634", new ElmahIoOptions
-            {
-                Timeout = TimeSpan.FromSeconds(30),
-                UserAgent = "Azure-DevOps-Migration-Tools",
-            });
-            elmahIoClient.Messages.OnMessage += (sender, args) => args.Message.Version = migrationToolVersion.GetRunningVersion().versionString;
 
+            var elmahApiKey = configuration.GetValue<string>("Telemetry:Elmah:ApiKey") ?? "";
+            _elmahLogId = configuration.GetValue<string>("Telemetry:Elmah:LogId") ?? "";
+            _elmahEnabled = !string.IsNullOrWhiteSpace(elmahApiKey) && !string.IsNullOrWhiteSpace(_elmahLogId);
+
+            if (_elmahEnabled)
+            {
+                elmahIoClient = ElmahioAPI.Create(elmahApiKey, new ElmahIoOptions
+                {
+                    Timeout = TimeSpan.FromSeconds(30),
+                    UserAgent = "Migration-Tools",
+                });
+                elmahIoClient.Messages.OnMessage += (sender, args) => args.Message.Version = migrationToolVersion.GetRunningVersion().versionString;
+            }
         }
 
         private static string _sessionid = Guid.NewGuid().ToString();
@@ -33,6 +43,13 @@ namespace MigrationTools
 
         public void TrackException(Exception ex, IDictionary<string, string> properties)
         {
+            if (!_elmahEnabled)
+            {
+                Console.WriteLine($"Error occurred but telemetry is not configured. Configure Telemetry:Elmah:ApiKey and Telemetry:Elmah:LogId in appsettings.json to enable error reporting.");
+                Console.WriteLine($"!! Check for latest version - We fix issues constantly - If not, please create a discussion on https://github.com/n8group-oss/azure-devops-migration-tools/discussions so we can get this fixed !!");
+                return;
+            }
+
             var baseException = ex.GetBaseException();
             var createMessage = new CreateMessage
             {
@@ -45,10 +62,10 @@ namespace MigrationTools
                 Source = baseException.Source,
                 User = Environment.UserName,
                 Hostname = System.Environment.GetEnvironmentVariable("COMPUTERNAME"),
-                Application = "Azure-DevOps-Migration-Tools",
+                Application = "Migration-Tools",
                 ServerVariables = new List<Item>
                     {
-                        new Item("User-Agent", $"X-ELMAHIO-APPLICATION; OS={Environment.OSVersion.Platform}; OSVERSION={Environment.OSVersion.Version}; ENGINEVERSION={_MigrationToolVersion.GetRunningVersion().versionString}; ENGINE=Azure-DevOps-Migration-Tools"),
+                        new Item("User-Agent", $"X-ELMAHIO-APPLICATION; OS={Environment.OSVersion.Platform}; OSVERSION={Environment.OSVersion.Version}; ENGINEVERSION={_MigrationToolVersion.GetRunningVersion().versionString}; ENGINE=Migration-Tools"),
                     }
             };
             createMessage.Data.Add(new Item("SessionId", SessionId));
@@ -62,9 +79,9 @@ namespace MigrationTools
                 }
 
             }
-           var result = elmahIoClient.Messages.CreateAndNotify(new Guid("24086b6d-4f58-47f4-8ac7-68d8bc05ca9e"), createMessage);
+           var result = elmahIoClient.Messages.CreateAndNotify(new Guid(_elmahLogId), createMessage);
            Console.WriteLine($"Error logged to Elmah.io! ");
-           Console.WriteLine($"!! Check for latest version - We fix issues constantly - If not, please create a discussion on https://github.com/nkdAgility/azure-devops-migration-tools/discussions so we can get this fixed !!");
+           Console.WriteLine($"!! Check for latest version - We fix issues constantly - If not, please create a discussion on https://github.com/n8group-oss/azure-devops-migration-tools/discussions so we can get this fixed !!");
         }
 
         public void TrackException(Exception ex, IEnumerable<KeyValuePair<string, string>> properties = null)

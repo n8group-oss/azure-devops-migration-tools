@@ -36,15 +36,12 @@ namespace MigrationTools.Host
 
         internal static void AsciiLogo(string thisVersion, Serilog.ILogger logger)
         {
-            AnsiConsole.Write(new FigletText("Azure DevOps").LeftJustified().Color(Color.Purple));
-            AnsiConsole.Write(new FigletText("Migration Tools").LeftJustified().Color(Color.Purple));
+            AnsiConsole.Write(new FigletText("N8 Group").LeftJustified().Color(Color.Purple));
+            AnsiConsole.Write(new FigletText("Migration Tool").LeftJustified().Color(Color.Purple));
             var productName = ((AssemblyProductAttribute)Assembly.GetEntryAssembly()
                 .GetCustomAttributes(typeof(AssemblyProductAttribute), true)[0]).Product;
             logger.Information("{productName} ", productName);
             logger.Information("{thisVersion}", thisVersion);
-            var companyName = ((AssemblyCompanyAttribute)Assembly.GetEntryAssembly()
-                .GetCustomAttributes(typeof(AssemblyCompanyAttribute), true)[0]).Company;
-            logger.Information("{companyName} ", companyName);
             logger.Information("===============================================================================");
         }
 

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Net.NetworkInformation;
+using System.Net.Http;
 using Microsoft.Extensions.Logging;
 using MigrationTools.Services;
 using Serilog;
@@ -11,6 +11,7 @@ namespace MigrationTools.Host.Services
     {
         private readonly ITelemetryLogger _Telemetry;
         private ILogger<DetectOnlineService> _logger;
+        private static readonly HttpClient _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
 
         public DetectOnlineService(ITelemetryLogger telemetry, ILogger<DetectOnlineService> logger)
         {
@@ -23,11 +24,9 @@ namespace MigrationTools.Host.Services
             _logger.LogDebug("DetectOnlineService::IsOnline");
             using (var activity = ActivitySourceProvider.ActivitySource.StartActivity("DetectOnlineService:IsOnline", ActivityKind.Client))
             {
-                activity?.SetTag("url.full", "8.8.4.4");
-                activity?.SetTag("server.address", "8.8.4.4");
-                activity?.SetTag("http.request.method", "GET");
-
-                activity?.SetTag("migrationtools.client", "TfsObjectModel");
+                activity?.SetTag("url.full", "https://dns.google");
+                activity?.SetTag("server.address", "dns.google");
+                activity?.SetTag("http.request.method", "HEAD");
 
                 DateTime startTime = DateTime.Now;
                 Stopwatch mainTimer = Stopwatch.StartNew();
@@ -36,29 +35,22 @@ namespace MigrationTools.Host.Services
                 string responce = "none";
                 try
                 {
-                    Ping myPing = new Ping();
-                    String host = "8.8.4.4";
-                    byte[] buffer = new byte[32];
-                    int timeout = 1000;
-                    PingOptions pingOptions = new PingOptions();
-                    PingReply reply = myPing.Send(host, timeout, buffer, pingOptions);
-                    responce = reply.Status.ToString();
-                    if (reply.Status == IPStatus.Success)
-                    {
-                        isOnline = true;
-                    }
+                    var request = new HttpRequestMessage(HttpMethod.Head, "https://dns.google");
+                    var response = _httpClient.Send(request);
+                    responce = ((int)response.StatusCode).ToString();
+                    isOnline = response.IsSuccessStatusCode;
                     mainTimer.Stop();
-                    activity.SetStatus(ActivityStatusCode.Ok);
+                    activity?.SetStatus(ActivityStatusCode.Ok);
                     activity?.SetTag("http.response.status_code", responce);
                 }
                 catch (Exception ex)
                 {
                     mainTimer.Stop();
-                    // Likley no network is even available
-                    Log.Error(ex, "Error checking if we are online.");
+                    // Likely no network is even available
+                    Log.Warning("Unable to verify network connectivity: {Message}", ex.Message);
                     responce = "error";
                     isOnline = false;
-                    activity.SetStatus(ActivityStatusCode.Error);
+                    activity?.SetStatus(ActivityStatusCode.Error);
                     activity?.SetTag("http.response.status_code", "500");
                 }
                 /////////////////
