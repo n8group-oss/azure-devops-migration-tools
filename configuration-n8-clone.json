@@ -103,7 +103,7 @@
         "PauseAfterEachWorkItem": false,
         "AttachRevisionHistory": false,
         "GenerateMigrationComment": true,
-        "WorkItemIDs": null,
+        "WorkItemIDs": [],
         "MaxGracefulFailures": 0,
         "SkipRevisionWithInvalidIterationPath": false,
         "SkipRevisionWithInvalidAreaPath": false,

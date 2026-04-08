@@ -52,8 +52,8 @@ namespace MigrationTools.Host.Commands
             {
                 if (!VersionOptions.ConfigureOptions.IsConfigSchemaValid(settings.ConfigFile))
                 {
-                    CommandActivity.AddEvent(new ActivityEvent("ConfigIsNotValid"));
-                    return Task.FromResult(-1);
+                    CommandActivity.AddEvent(new ActivityEvent("ConfigSchemaWarning"));
+                    _logger.LogWarning("Configuration file did not pass schema validation. Proceeding anyway — the bundled schema may not cover all processor types.");
                 }
 
                 var migrationEngine = _services.GetRequiredService<IMigrationEngine>();
