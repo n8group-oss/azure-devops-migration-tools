@@ -34,6 +34,52 @@
           "AreaPath": "Area",
           "IterationPath": "Iteration"
         }
+      },
+      "SourceTeamSettings": {
+        "EndpointType": "TfsTeamSettingsEndpoint",
+        "Collection": "https://dev.azure.com/n8cloud-gp/",
+        "Project": "DAMAC-Sandbox",
+        "Authentication": {
+          "AuthenticationMode": "AccessToken",
+          "AccessToken": ""
+        },
+        "ReflectedWorkItemIdField": "Custom.ReflectedWorkItemId",
+        "AllowCrossProjectLinking": false,
+        "LanguageMaps": {
+          "AreaPath": "Area",
+          "IterationPath": "Iteration"
+        }
+      },
+      "TargetTeamSettings": {
+        "EndpointType": "TfsTeamSettingsEndpoint",
+        "Collection": "https://dev.azure.com/n8cloud-gp/",
+        "Project": "DAMAC-Sandbox-Cloned",
+        "Authentication": {
+          "AuthenticationMode": "AccessToken",
+          "AccessToken": ""
+        },
+        "ReflectedWorkItemIdField": "Custom.ReflectedWorkItemId",
+        "AllowCrossProjectLinking": false,
+        "LanguageMaps": {
+          "AreaPath": "Area",
+          "IterationPath": "Iteration"
+        }
+      },
+      "SourceRest": {
+        "EndpointType": "AzureDevOpsEndpoint",
+        "AuthenticationMode": "AccessToken",
+        "AccessToken": "",
+        "Organisation": "https://dev.azure.com/n8cloud-gp/",
+        "Project": "DAMAC-Sandbox",
+        "ReflectedWorkItemIdField": "Custom.ReflectedWorkItemId"
+      },
+      "TargetRest": {
+        "EndpointType": "AzureDevOpsEndpoint",
+        "AuthenticationMode": "AccessToken",
+        "AccessToken": "",
+        "Organisation": "https://dev.azure.com/n8cloud-gp/",
+        "Project": "DAMAC-Sandbox-Cloned",
+        "ReflectedWorkItemIdField": "Custom.ReflectedWorkItemId"
       }
     },
     "CommonTools": {
@@ -70,6 +116,18 @@
         "ExportBasePath": "c:\\temp\\WorkItemAttachmentExport",
         "MaxRevisions": 480000000
       },
+      "TfsGitRepositoryTool": {
+        "Enabled": true,
+        "Mappings": {}
+      },
+      "TfsTeamSettingsTool": {
+        "Enabled": true,
+        "MigrateTeamSettings": true,
+        "UpdateTeamSettings": false,
+        "MigrateTeamCapacities": true,
+        "UseUserMapping": false,
+        "Teams": null
+      },
       "StringManipulatorTool": {
         "Enabled": true,
         "MaxStringLength": 1000000,
@@ -88,7 +146,8 @@
         "Mappings": {
           "Epic": "Epic",
           "Issue": "Issue",
-          "Task": "Task"
+          "Task": "Task",
+          "Bug": "Bug"
         }
       }
     },
@@ -96,7 +155,7 @@
       {
         "ProcessorType": "TfsWorkItemMigrationProcessor",
         "Enabled": true,
-        "WIQLQuery": "SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = @TeamProject AND [System.WorkItemType] IN ('Epic', 'Issue', 'Task') ORDER BY [System.ChangedDate] desc",
+        "WIQLQuery": "SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = @TeamProject AND [System.WorkItemType] IN ('Epic', 'Issue', 'Task', 'Bug') ORDER BY [System.ChangedDate] desc",
         "FixHtmlAttachmentLinks": true,
         "WorkItemCreateRetryLimit": 5,
         "FilterWorkItemsThatAlreadyExistInTarget": true,
@@ -109,6 +168,32 @@
         "SkipRevisionWithInvalidAreaPath": false,
         "SourceName": "Source",
         "TargetName": "Target"
+      },
+      {
+        "ProcessorType": "TfsTeamSettingsProcessor",
+        "Enabled": true,
+        "MigrateTeamSettings": true,
+        "UpdateTeamSettings": false,
+        "PrefixProjectToNodes": false,
+        "MigrateTeamCapacities": true,
+        "Teams": null,
+        "UseUserMapping": false,
+        "SourceName": "SourceTeamSettings",
+        "TargetName": "TargetTeamSettings"
+      },
+      {
+        "ProcessorType": "AzureDevOpsPipelineProcessor",
+        "Enabled": true,
+        "MigrateBuildPipelines": true,
+        "MigrateReleasePipelines": true,
+        "MigrateTaskGroups": true,
+        "MigrateVariableGroups": true,
+        "MigrateServiceConnections": true,
+        "BuildPipelines": null,
+        "ReleasePipelines": null,
+        "RepositoryNameMaps": {},
+        "SourceName": "SourceRest",
+        "TargetName": "TargetRest"
       }
     ]
   }
