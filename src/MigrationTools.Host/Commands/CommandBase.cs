@@ -139,6 +139,10 @@ namespace MigrationTools.Host.Commands
                 {
                     Log.Debug("No package manager detected. Skipping version management checks.");
                 }
+                else if (Console.IsInputRedirected)
+                {
+                    Log.Debug("Console input is redirected (CI/non-interactive). Skipping version management prompts.");
+                }
                 else
                 {
                     if (!_detectVersionService.IsRunningInDebug)
