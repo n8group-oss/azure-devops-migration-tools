@@ -1,0 +1,151 @@
+name: "Test: TeamMappings Migration"
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-team-mapping:
+    name: "Run TfsTeamSettingsProcessor with TeamMappings"
+    runs-on: windows-latest
+    env:
+      # TFS endpoints (Source, Target, SourceTeamSettings, TargetTeamSettings)
+      MigrationTools__Endpoints__Source__Authentication__AccessToken: ${{ secrets.ADO_PAT }}
+      MigrationTools__Endpoints__Target__Authentication__AccessToken: ${{ secrets.ADO_PAT }}
+      MigrationTools__Endpoints__SourceTeamSettings__Authentication__AccessToken: ${{ secrets.ADO_PAT }}
+      MigrationTools__Endpoints__TargetTeamSettings__Authentication__AccessToken: ${{ secrets.ADO_PAT }}
+      # REST endpoints
+      MigrationTools__Endpoints__SourceRest__AccessToken: ${{ secrets.ADO_PAT }}
+      MigrationTools__Endpoints__TargetRest__AccessToken: ${{ secrets.ADO_PAT }}
+    steps:
+      - name: Checkout (for config file)
+        uses: actions/checkout@v5
+
+      - name: Download release
+        shell: pwsh
+        run: |
+          $tag = "v17.0.0-Preview.4"
+          $zipName = "MigrationTools-17.0.0-Preview.4.zip"
+          $url = "https://github.com/n8group-oss/azure-devops-migration-tools/releases/download/$tag/$zipName"
+          Write-Output "Downloading $url ..."
+          Invoke-WebRequest -Uri $url -OutFile $zipName
+          Write-Output "Extracting..."
+          Expand-Archive -Path $zipName -DestinationPath ./migration-tool -Force
+          Get-ChildItem -Path ./migration-tool -Recurse | Unblock-File
+          Write-Output "Contents:"
+          Get-ChildItem -Path ./migration-tool | ForEach-Object { $_.Name }
+
+      - name: "Write test config (team settings only)"
+        shell: pwsh
+        run: |
+          $config = @'
+          {
+            "Serilog": { "MinimumLevel": "Information" },
+            "MigrationTools": {
+              "Version": "16.0",
+              "Endpoints": {
+                "Source": {
+                  "EndpointType": "TfsTeamProjectEndpoint",
+                  "Collection": "https://dev.azure.com/n8cloud-gp/",
+                  "Project": "DAMAC-Sandbox",
+                  "Authentication": { "AuthenticationMode": "AccessToken", "AccessToken": "" },
+                  "ReflectedWorkItemIdField": "Custom.ReflectedWorkItemId",
+                  "AllowCrossProjectLinking": false,
+                  "LanguageMaps": { "AreaPath": "Area", "IterationPath": "Iteration" }
+                },
+                "Target": {
+                  "EndpointType": "TfsTeamProjectEndpoint",
+                  "Collection": "https://dev.azure.com/n8cloud-gp/",
+                  "Project": "DAMAC-Sandbox-Cloned",
+                  "Authentication": { "AuthenticationMode": "AccessToken", "AccessToken": "" },
+                  "ReflectedWorkItemIdField": "Custom.ReflectedWorkItemId",
+                  "AllowCrossProjectLinking": false,
+                  "LanguageMaps": { "AreaPath": "Area", "IterationPath": "Iteration" }
+                },
+                "SourceTeamSettings": {
+                  "EndpointType": "TfsTeamSettingsEndpoint",
+                  "Collection": "https://dev.azure.com/n8cloud-gp/",
+                  "Project": "DAMAC-Sandbox",
+                  "Authentication": { "AuthenticationMode": "AccessToken", "AccessToken": "" },
+                  "ReflectedWorkItemIdField": "Custom.ReflectedWorkItemId",
+                  "AllowCrossProjectLinking": false,
+                  "LanguageMaps": { "AreaPath": "Area", "IterationPath": "Iteration" }
+                },
+                "TargetTeamSettings": {
+                  "EndpointType": "TfsTeamSettingsEndpoint",
+                  "Collection": "https://dev.azure.com/n8cloud-gp/",
+                  "Project": "DAMAC-Sandbox-Cloned",
+                  "Authentication": { "AuthenticationMode": "AccessToken", "AccessToken": "" },
+                  "ReflectedWorkItemIdField": "Custom.ReflectedWorkItemId",
+                  "AllowCrossProjectLinking": false,
+                  "LanguageMaps": { "AreaPath": "Area", "IterationPath": "Iteration" }
+                }
+              },
+              "CommonTools": {
+                "TfsNodeStructureTool": {
+                  "Enabled": true,
+                  "Areas": { "Filters": [], "Mappings": [{ "Match": "^DAMAC-Sandbox([\\\\]?.*)$", "Replacement": "DAMAC-Sandbox-Cloned$1" }] },
+                  "Iterations": { "Filters": [], "Mappings": [{ "Match": "^DAMAC-Sandbox([\\\\]?.*)$", "Replacement": "DAMAC-Sandbox-Cloned$1" }] },
+                  "ShouldCreateMissingRevisionPaths": true,
+                  "ReplicateAllExistingNodes": true
+                },
+                "TfsTeamSettingsTool": {
+                  "Enabled": true,
+                  "MigrateTeamSettings": true,
+                  "UpdateTeamSettings": false,
+                  "MigrateTeamCapacities": true,
+                  "UseUserMapping": false,
+                  "Teams": []
+                }
+              },
+              "Processors": [
+                {
+                  "ProcessorType": "TfsTeamSettingsProcessor",
+                  "Enabled": true,
+                  "MigrateTeamSettings": true,
+                  "UpdateTeamSettings": false,
+                  "PrefixProjectToNodes": false,
+                  "MigrateTeamCapacities": true,
+                  "Teams": [],
+                  "UseUserMapping": false,
+                  "TeamMappings": {
+                    "DAMAC-Sandbox Team": "DAMAC-Sandbox-Cloned Team"
+                  },
+                  "SourceName": "SourceTeamSettings",
+                  "TargetName": "TargetTeamSettings"
+                }
+              ]
+            }
+          }
+          '@
+          $config | Out-File -FilePath ./migration-tool/configuration.json -Encoding UTF8
+          Write-Output "Config written. Contents:"
+          Get-Content ./migration-tool/configuration.json | Select-Object -First 10
+
+      - name: "Run migration (TfsTeamSettingsProcessor)"
+        shell: pwsh
+        working-directory: ./migration-tool
+        run: |
+          Write-Output "Running migration tool..."
+          $proc = Start-Process -FilePath ".\devopsmigration.exe" -ArgumentList "execute", "-c", "configuration.json" -NoNewWindow -Wait -PassThru -RedirectStandardOutput stdout.txt -RedirectStandardError stderr.txt
+          Write-Output "--- STDOUT ---"
+          Get-Content stdout.txt
+          Write-Output "--- STDERR ---"
+          Get-Content stderr.txt
+          Write-Output "Exit code: $($proc.ExitCode)"
+          if ($proc.ExitCode -ne 0) {
+            Write-Error "Migration tool exited with code $($proc.ExitCode)"
+            exit $proc.ExitCode
+          }
+
+      - name: "Upload logs"
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: migration-logs
+          path: |
+            ./migration-tool/stdout.txt
+            ./migration-tool/stderr.txt
+            ./migration-tool/Logs/**
