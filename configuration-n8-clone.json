@@ -126,7 +126,7 @@
         "UpdateTeamSettings": false,
         "MigrateTeamCapacities": true,
         "UseUserMapping": false,
-        "Teams": null
+        "Teams": []
       },
       "StringManipulatorTool": {
         "Enabled": true,
@@ -176,7 +176,7 @@
         "UpdateTeamSettings": false,
         "PrefixProjectToNodes": false,
         "MigrateTeamCapacities": true,
-        "Teams": null,
+        "Teams": [],
         "UseUserMapping": false,
         "SourceName": "SourceTeamSettings",
         "TargetName": "TargetTeamSettings"
