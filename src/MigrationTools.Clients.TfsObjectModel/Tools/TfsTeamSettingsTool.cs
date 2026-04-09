@@ -138,12 +138,33 @@ namespace MigrationTools.Tools
             foreach (TeamFoundationTeam sourceTeam in sourceTeams)
             {
                 Stopwatch witstopwatch = Stopwatch.StartNew();
-                var foundTargetTeam = targetTeams.FirstOrDefault(x => string.Equals(x.Name, sourceTeam.Name, StringComparison.OrdinalIgnoreCase));
-                if (foundTargetTeam == null || Options.UpdateTeamSettings)
+
+                // Check if there is a team name mapping for this source team
+                string targetTeamName = sourceTeam.Name;
+                string mappedName = null;
+                bool isMapped = Options.TeamMappings != null &&
+                                Options.TeamMappings.TryGetValue(sourceTeam.Name, out mappedName);
+                if (isMapped)
                 {
-                    Log.LogDebug("Processing team '{0}':", sourceTeam.Name);
-                    TeamFoundationTeam newTeam = foundTargetTeam ?? TargetTeamService.CreateTeam(_processor.Target.WorkItems.Project.Url, sourceTeam.Name, sourceTeam.Description, null);
-                    Log.LogDebug("-> Team '{0}' created", sourceTeam.Name);
+                    targetTeamName = mappedName;
+                    Log.LogInformation("Team '{0}' is mapped to target team '{1}'", sourceTeam.Name, targetTeamName);
+                }
+
+                var foundTargetTeam = targetTeams.FirstOrDefault(x => string.Equals(x.Name, targetTeamName, StringComparison.OrdinalIgnoreCase));
+                // When a mapping is used and the target team exists, always update its settings
+                bool shouldProcess = foundTargetTeam == null || Options.UpdateTeamSettings || (isMapped && foundTargetTeam != null);
+                if (shouldProcess)
+                {
+                    if (isMapped && foundTargetTeam != null)
+                    {
+                        Log.LogDebug("Processing mapped team '{0}' -> '{1}':", sourceTeam.Name, targetTeamName);
+                    }
+                    else
+                    {
+                        Log.LogDebug("Processing team '{0}':", sourceTeam.Name);
+                    }
+                    TeamFoundationTeam newTeam = foundTargetTeam ?? TargetTeamService.CreateTeam(_processor.Target.WorkItems.Project.Url, targetTeamName, sourceTeam.Description, null);
+                    Log.LogDebug("-> Team '{0}' created", targetTeamName);
 
                     if (Options.MigrateTeamSettings)
                     {
@@ -159,10 +180,10 @@ namespace MigrationTools.Tools
                             {
                                 var iterationMap = new Dictionary<string, string>();
 
-                                var targetConfig = targetConfigurations.FirstOrDefault(t => string.Equals(t.TeamName, sourceConfig.TeamName, StringComparison.OrdinalIgnoreCase));
+                                var targetConfig = targetConfigurations.FirstOrDefault(t => string.Equals(t.TeamName, targetTeamName, StringComparison.OrdinalIgnoreCase));
                                 if (targetConfig == null)
                                 {
-                                    Log.LogDebug("-> Settings for team '{sourceTeamName}'.. not found", sourceTeam.Name);
+                                    Log.LogDebug("-> Settings for team '{sourceTeamName}' (target: '{targetTeamName}').. not found", sourceTeam.Name, targetTeamName);
                                     continue;
                                 }
 

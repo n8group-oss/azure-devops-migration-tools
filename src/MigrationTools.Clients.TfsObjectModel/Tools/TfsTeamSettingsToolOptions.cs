@@ -34,6 +34,16 @@ namespace MigrationTools.Tools
         /// List of Teams to process. If this is `null` then all teams will be processed.
         /// </summary>
         public List<string> Teams { get; set; }
+
+        /// <summary>
+        /// Mapping of source team names to target team names. Use this when the target project has
+        /// differently named teams (e.g. default teams named after the project). If a source team name
+        /// is found in this dictionary, the tool will look for the mapped target team name instead
+        /// of looking for an exact name match. When a mapping is used and the target team exists,
+        /// its settings will be updated regardless of the UpdateTeamSettings flag.
+        /// </summary>
+        /// <default>{}</default>
+        public Dictionary<string, string> TeamMappings { get; set; } = new Dictionary<string, string>();
     }
 
     public interface ITfsTeamSettingsToolOptions
@@ -47,5 +57,7 @@ namespace MigrationTools.Tools
         public List<string> Teams { get; set; }
 
         public bool UseUserMapping { get; set; }
+
+        public Dictionary<string, string> TeamMappings { get; set; }
     }
 }

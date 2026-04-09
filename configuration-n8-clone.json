@@ -126,7 +126,10 @@
         "UpdateTeamSettings": false,
         "MigrateTeamCapacities": true,
         "UseUserMapping": false,
-        "Teams": []
+        "Teams": [],
+        "TeamMappings": {
+          "DAMAC-Sandbox Team": "DAMAC-Sandbox-Cloned Team"
+        }
       },
       "StringManipulatorTool": {
         "Enabled": true,
