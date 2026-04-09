@@ -178,6 +178,9 @@
         "MigrateTeamCapacities": true,
         "Teams": [],
         "UseUserMapping": false,
+        "TeamMappings": {
+          "DAMAC-Sandbox Team": "DAMAC-Sandbox-Cloned Team"
+        },
         "SourceName": "SourceTeamSettings",
         "TargetName": "TargetTeamSettings"
       },
